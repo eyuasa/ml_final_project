@@ -1,0 +1,428 @@
+---
+title: "ML_Final"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Exploratory Data Analysis  
+## Filter to only include indicated predictors in assignment  
+### Indicated Predictors, Description, and Categories for References  
+“RIDAGEYR”: Age in years at time of screening interview  
+“RIAGENDR”:Gender 1 = male, 2 = female  
+“BPQ010”: Last blood pressure reading by doctor. 1 = less than 6 months ago, 2 = 6m - 1 year, 3 = more than 1 year to 2 years, 4 = more than 2 years ago, 5 = never, 7 = refused, 9 = don't know, . =  missing.  
+“BPQ060”: Ever had blood cholesterol checked 1 = Yes, 2 = No, 7 = Refused, 9 = don't know . = missing.  
+“DIQ010”: Doctor told you have diabetes 1 = yes, 2 = no, 3= borderline, 7 = refused, 9 = don't know, . = missing.  
+“DIQ050”: Taking insulin now 1 = yes, 2 = no, 7 = refused, 9 = don't know . = missing.  
+“DIQ090”: Past year told control weight, increasing physical activity, reduce fat or category  
+“MCQ010”: Ever been told you have asthma 1 = Yes, 2 = No, 7 = Refused, 9 = don't know, . = missing.  
+“MCQ053”: Taking treatment for anemia part 3 months: 1 = Yes, 2 = No, 7 = Refused, 9 = don't know, . = missing.  
+“MCQ160A”: Doctor ever said you have arthritis 1 = Yes, 2 = No, 7 = Refused, 9 = don't know, . = missing.  
+“MCQ160B”: Ever told had congestive heart failure 1 = Yes, 2 = No, 7 = Refused, 9 = don't know, . = missing.  
+“MCQ160K”: Ever told you had chronic bronchitis 1 = Yes, 2 = No, 7 = Refused, 9 = don't know, . = missing.  
+“MCQ160L": Ever told you had any liver condition 1 = Yes, 2 = No, 7 = Refused, 9 = don't know, . = missing.  
+“BMXWAIST”: Waist Circumference (cm) . = missing  
+“MCQ160M”: Ever told you had a thyroid problem 1 = Yes, 2 = No, 7 = Refused, 9 = don't know, . = missing.  
+“MCQ220”: Ever told you have cancer or malignancy 1 = Yes, 2 = No, 7 = Refused, 9 = don't know, . = missing.  
+“MCQ245A” - Discontinued  
+“MCQ250A”: blood relatives have diabetes  
+“MCQ250B”: blood relatives have Alzheimer  
+“MCQ250C”: blood relatives have asthma  
+“MCQ250E”: blood relatives have osteoporosis  
+“MCQ250F”: blood relatives have high blood pressure or stroke before 50    
+“MCQ250G”: blood relatives have heart attack or anginia before 50    
+“MCQ265” - Discontinued  
+“SSQ011”: Anyone to help with emotional support 1 = yes, 2 = no, 3 = doesn't need, 7 = refused, 9 = don't know . = missing.  
+“SSQ051”: Anyone to help with financial support 1 = yes, 2 = no, 3 = wouldn't accept it but offered, 7 = refused, 9 = don't know . = missing.  
+“WHQ030”: How do you consider your weight? 1=over 2=under, 3=about the right weight, 7 = refused, 9 = don't know, . = missing.  
+“WHQ040”: Like to weight more, less, or same 1=more, 2=less 3=same, 7 = refused, 9=don't know, .=missing.  
+“LBXRDW”: red cell distribution width (%) range of values  
+“HSD010”: General health condition 1 = excellent, 2=very good, 3 = good, 4 = fair, 5 = poor, 7 = refused, 9 = don't know, . = missing.  
+“BPXPULS”: Pulse regular or irregular (1 = regular, 2 = irregular, . = missing)  
+“BPXML1”: Maximum inflation levels (mm HG) 
+“VIQ200”: Eye surgery for cataracts 1 = yes 2 = no 9 = don't know . = missing  
+“BMXBMI”: Body mass index (kp / m ** 2)
+“BPXSY1”: Systolic: Blood pres (1st rdg) mm Hg  
+“BPXDI1”: Diastolic: Blood pres (1st rdg) mm Hg   
+mortstat: 0 = assumed alive, 1 =  assumed deceased  
+```{r}
+predictors <- c("RIDAGEYR", "RIAGENDR", "BPQ010", "BPQ060", "DIQ010", "DIQ050", "DIQ090", "MCQ010", "MCQ053", "MCQ160A", "MCQ160B", "MCQ160K", "MCQ160L", "BMXWAIST", "MCQ160M", "MCQ220", "MCQ245A", "MCQ250A", "MCQ250B", "MCQ250C", "MCQ250E", "MCQ250F", "MCQ250G", "MCQ265", "SSQ011", "SSQ051", "WHQ030", "WHQ040", "LBXRDW", "HSD010", "BPXPULS", "BPXML1", "VIQ200", "BMXBMI", "BPXSY1", "BPXDI1")
+
+load(file='nhanes2003-2004.Rda')
+
+nhanes_select <- nhanes2003_2004 %>%
+  select(predictors, "mortstat")
+# Display first 6 rows of dataframe 
+head(nhanes_select)
+```
+## Convert to numeric and only age >= 50
+```{r}
+# Convert all predictor columns to numeric class
+nhanes_select[ , predictors] <- apply(nhanes_select[ , predictors], 2,  
+                    function(x) 
+                      as.numeric(as.character(x)))
+# Filter for age >= 50 as stated in the assignment
+nhanes_df <- nhanes_select %>%
+  filter(RIDAGEYR >= 50)
+# Omit NAs 
+nhanes_df <- na.omit(nhanes_df)
+# Summarize data columns 
+summary(nhanes_df)
+```
+## Visually examine some of the possible predictors  
+```{r}
+prop.table(table(nhanes_df$mortstat))*100
+```
+```{r}
+prop.table(table(nhanes_df$mortstat, nhanes_df$RIAGENDR))*100
+```
+Identifying highly correlated pairs for possible confounding: BPXML1 with BPXSY1 and BPXDI1 (both could be measures of blood pressure) as well as BPXSY1 and BPXDI1. 
+```{r}
+pairs(nhanes_df[,1:10], pch=0.5)
+```
+```{r}
+pairs(nhanes_df[,11:20], pch=0.5)
+```
+```{r}
+pairs(nhanes_df[,21:30], pch=0.5)
+```
+```{r}
+pairs(nhanes_df[,31:37], pch=0.5)
+```
+  
+# Subset Selection  
+Because of the large number of potential variables that can be considered as predictors for mortality status, I first ran best subset selection fitting up to a 15 variable model in the linear space to aid in prediction accuracy and model interpretability. Subset selection was chosen to identify a subset of the p predictors that were identified as being related to the response. After subset selection was run, Cp, BIC, and R^2 statistics were analyzed in order to select models for use in the first few models.  
+```{r}
+library(leaps) 
+# Fitting up to a 15 variable model
+regfit.full = regsubsets(mortstat~., nhanes_df, nvmax=15)
+reg.summary <- summary(regfit.full)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(reg.summary$rss ,xlab="Number of Variables ",ylab="RSS",
+type="l")
+plot(reg.summary$adjr2 ,xlab="Number of Variables ",
+ylab="Adjusted RSq",type="l")
+points(15,reg.summary$adjr2[15], col="red",cex=2,pch=20)
+plot(reg.summary$cp ,xlab="Number of Variables ",
+ylab="Cp",type="l")
+points(10,reg.summary$cp[10], col="red",cex=2,pch=20)
+plot(reg.summary$bic ,xlab="Number of Variables ",
+ylab="BIC",type="l")
+points(5,reg.summary$bic[5], col="red",cex=2,pch=20)
+```
+  
+Cp predicts the 10 variable model and BIC predicts the 5-variable model. Those models are as follows using our best subset selection:
+5: RIDAGEYR, RIAGENDR, MCQ160K, LBXRDW, HSD010
+10: RIDAGEYR, RIAGENDR, BPQ060, DIQ090, MCQ160A, MCQ160K, SSQ011, LBXRDW, HSD010, BPXPULS  
+```{r}
+reg.summary
+```
+## Examine possible correlation between the 5 and 10 selected variables   
+Visually, no major correlation trends between variables stand out in the five or ten variable selected models.  
+```{r}
+five_var <- c("RIDAGEYR", "RIAGENDR", "MCQ160K", "LBXRDW", "HSD010")
+ten_var <- c("RIDAGEYR", "RIAGENDR", "BPQ060", "DIQ090", "MCQ160A", "MCQ160K", "SSQ011", "LBXRDW", "HSD010", "BPXPULS")  
+five_df <- nhanes_df %>%
+  select(five_var, mortstat)
+pairs(five_df)
+ten_df <- nhanes_df %>%
+  select(ten_var, mortstat)
+pairs(ten_df)
+```
+
+
+
+# Classification Methods: Logistic Regression  
+## Model 1: Logistic Regression using 5 predictors in best subset selection  
+In each of the logistic regression classification methods (5 and 10-variable), I first separated the data into two equal test and train samples using the `sample()` command in R. Once the test and training data was complete, I ran a `proptable()` on mortstatus to understand if the training and testing data had similar mortality status proportions. For both models, I used the testing data to run a glm with family binomial to create the model. I then used the `predict()` function in R to use the model to predict on the test data set. I created a table to compare the predicted probabilities to the actual mortality test data. For logistic regression models, I finally compared models for preference using AIC.
+```{r}
+attach(nhanes_df)
+model <- glm(mortstat ~ RIAGENDR + RIDAGEYR + MCQ160K + LBXRDW + HSD010, data=nhanes_df, family=binomial)
+summary(model)
+```
+Creating training and testing dataset and making sure percentages of mortality split are similar to original dataset.
+```{r}
+set.seed(1)
+prop.table(table(nhanes_df$mortstat))*100
+train = sample(1607, 1607/2)
+train_data = nhanes_df[train,]
+prop.table(table(train_data$mortstat))*100
+test_data = nhanes_df[-train,]
+prop.table(table(test_data$mortstat))*100
+```
+Running logistic regression
+```{r}
+model_1 <- glm(mortstat ~ RIAGENDR + RIDAGEYR + MCQ160K + LBXRDW + HSD010, data=train_data, family=binomial)
+summary(model_1)
+log_probs <- predict(model_1, test_data, type="response")
+test_probs <-  (log_probs - test_data$mortstat) ^ 2
+#mean((log_probs - test_data$mortstat) ^ 2)
+```
+Find sensitivity and specificity of model. 
+```{r}
+log_pred =rep("0",804)
+log_pred[log_probs >.5]="1"
+table(log_pred, test_data$mortstat)
+mean(log_pred == test_data$mortstat)
+```
+This model is correct predicting 79.98% of the time. 
+```{r}
+# Sensitivity - Detecting those who are going to have a mort status of 1 correctly
+56 / (57 + 38) 
+# Specificity - Detecting those who are not going to have a mort status of 0 correctly 
+586 / (568+123)
+```
+
+## Model 2: Logistic Regression using 10 predictors in best subset selection   
+Running logistic regression
+```{r}
+set.seed(1)
+model_2 <- glm(mortstat ~ RIAGENDR + RIDAGEYR + BPQ060 + DIQ090 + MCQ160A + MCQ160K + SSQ011 + LBXRDW + HSD010 + BPXPULS, data=train_data, family=binomial)
+summary(model_2)
+log_probs_2 <- predict(model_2, test_data, type="response")
+#mean((log_probs - test_data$mortstat) ^ 2)
+```
+Find sensitivity and specificity of model. 
+```{r}
+log_pred_2 =rep("0",804)
+log_pred_2[log_probs_2 >.5]="1"
+table(log_pred_2, test_data$mortstat)
+mean(log_pred_2 == test_data$mortstat)
+```
+This model is correct predicting 80.84% of the time. 
+```{r}
+# Sensitivity - Detecting those who are going to have a mort status of 1 correctly
+61 / (61+35) 
+# Specificity - Detecting those who are not going to have a mort status of 0 correctly
+589 / (589+119) 
+```
+The testing accuracy in this specific logistic regression with 10 variables (model 2) is slightly better than the model 1 with 5 variables, but not a lot.  
+
+## AIC on Logistic Regression Models
+```{r}
+AIC(model_1, model_2)
+```
+Using AIC, we see that model 1 with 5 variables is the preferred model for logistic regression between the two models.   
+
+# Classification Methods: Quadratic and Linear Discriminant Analysis  
+## Model 3: LDA - 5 variables  
+In models 3 – 5, I used the `lda()` or `qda()` commands on the training data to get the original model. From there, I predicted the models on the test data using the predict() command in R and compared the classes of data predicted by the model against the actual mortality status of the test data.  
+```{r}
+library(MASS)
+set.seed(1)
+model_3 <- lda(mortstat ~ RIAGENDR + RIDAGEYR + MCQ160K + LBXRDW + HSD010, data=train_data)
+model_3
+plot(model_3)
+```
+  
+This LDA output tells us that 77.5% of the training observations correspond to 0 mortstat (alive) and 22.4% to 1 mortstat (dead). We'll now use it on our prediction data.
+```{r}
+lda_pred_5 <- predict(model_3, test_data)
+lda_class_5 <- lda_pred_5$class
+test_mort_status <- test_data$mortstat
+mean(lda_class_5== test_mort_status)
+mean(lda_class_5!= test_mort_status)
+```
+```{r}
+table(lda_class_5, test_mort_status)
+```
+```{r}
+(59) / (59+38)
+(586) / (586+121)
+```
+
+## Model 4: LDA - 10 variables
+```{r}
+library(MASS)
+model_4 <- lda(mortstat ~ RIAGENDR + RIDAGEYR + BPQ060 + DIQ090 + MCQ160A + MCQ160K + SSQ011 + LBXRDW + HSD010 + BPXPULS, data=train_data)
+model_4
+plot(model_4)
+```
+```{r}
+set.seed(1)
+lda_pred_10 <- predict(model_4, test_data)
+lda_class_10 <- lda_pred_10$class
+test_mort_status <- test_data$mortstat
+mean(lda_class_10== test_mort_status)
+mean(lda_class_10!= test_mort_status)
+```
+```{r}
+table(lda_class_10, test_mort_status)
+```
+```{r}
+60 / (60+38)
+586 / (586 + 120)
+```
+The results that we got from LDA were similar to that from Logistic Regression. 
+
+## Model 5: QDA - 10 variables
+```{r}
+set.seed(1)
+model_5 <- qda(mortstat ~ RIAGENDR + RIDAGEYR + BPQ060 + DIQ090 + MCQ160A + MCQ160K + SSQ011 + LBXRDW + HSD010 + BPXPULS, data=train_data)
+model_5
+```
+```{r}
+qda_pred_10 <- predict(model_5, test_data)
+qda_class_10 <- qda_pred_10$class
+test_mort_status <- test_data$mortstat
+mean(qda_class_10== test_mort_status)
+mean(qda_class_10!= test_mort_status)
+```
+The test accuracy rate is 76.74%. So far, this is the lower testing accuracy we've seen in this dataset.  
+```{r}
+table(qda_class_10, test_mort_status)
+```
+```{r}
+58/(58+65)
+559/(559+122)
+```
+This model appears to have the highest specificity, but lowest sensitivity.  
+
+# Tree-Based Methods: Random Forest  
+In models 6 and 7, I used the randomForest package in R, built under my current R version of 4.1.2 (randomForest 4.7-1). I used the `randomForest()` command to run a random forest on the 36 variables present in the training dataset. I used `importance()` and `varImpPlot()` functions on the models to understand the variables deemed most important in the modeling. From there, I used the `predict()` function to do prediction on the test data. I then compared the prediction from random forest methods to the actual test mortality status data.  
+## Model 6: RF with all 36 predictor variables = bagging. 
+```{r}
+library(randomForest)
+set.seed(1)
+model_6 =randomForest(as.factor(mortstat) ~., data=train_data, mtry=36,importance =TRUE)
+model_6
+importance(model_6)
+```
+```{r}
+varImpPlot(model_6)
+```
+```{r}
+yhat_bag =predict(model_6,newdata=test_data)
+table(yhat_bag, test_mort_status)
+```
+```{r}
+(65) / (65+46)
+(578) / (578 + 115)
+```
+## Model 7: RF without bagging
+```{r}
+set.seed(1)
+model_7 =randomForest(as.factor(mortstat) ~., data=train_data, mtry=6,importance =TRUE)
+model_7
+importance(model_7)
+```
+```{r}
+varImpPlot(model_7)
+```
+```{r}
+yhat_rf =predict(model_7,newdata=test_data)
+table(yhat_rf, test_mort_status)
+```
+```{r}
+(52) / (52+25)
+(598) / (598+128)
+```
+
+# Support Vector Machines: SVM  
+Using SVM modeling, I tried modeling with linear, polynomial, and radial kernels. I tried out differente cost features in the SVM model and utilized the `tune()` function in R and the e1071 package to find the best svm model for different costs for polynomial and radial kernels. From there, I used the `predict()` function to predict on the test data. I constructed ROC curves for the final radial model with best fit cost.   
+## Model 8: SVM: Linear Model with Cost = 10    
+Note: I manually ran cost = 1, cost = 0.5, and cost = 10 to choose a model from those three options.   
+```{r}
+library(e1071)
+```
+```{r}
+set.seed(1)
+model_8 <- svm(mortstat~., data=train_data, kernel="linear", cost=10)
+summary(model_8)
+```
+```{r}
+pred_model_8 =predict(model_8, newdata=test_data)
+# not probability - cutoff should then be 0. 
+# svm fits intercept term 
+# ?predict can help to convert to probability, 0 or 1, etc. 
+summary(pred_model_8)
+svm_pred =rep("0",804)
+svm_pred[pred_model_8 > 0]="1"
+table(true=test_data$mortstat, pred=svm_pred)
+```
+```{r}
+172 / (172+8)
+173 / (173+451)
+```
+
+## Model 9: SVM: Polynomial  
+```{r}
+set.seed(1)
+model_9=tune(svm, mortstat~., data=train_data, kernel="polynomial",
+ranges=list(cost=c(0.1,1,10,100,1000)))
+summary(model_9)
+```
+The best polynomial model has a cost of 0.1. 
+```{r}
+pred_model_9 =predict(model_9$best.model, newdata=test_data)
+svm_pred_9 =rep("0",804)
+svm_pred_9[pred_model_9 >0]="1"
+table(true=test_data$mortstat, pred=svm_pred_9)
+```
+```{r}
+179 / (179+1)
+(9) / (9+615)
+```
+
+## Model 10: SVM: Radial  
+```{r}
+set.seed(1)
+model_10=tune(svm, mortstat~., data=train_data, kernel="radial",
+ranges=list(cost=c(0.1,1,10,100,1000)))
+summary(model_10)
+```
+The best radial model has a cost of 1. 
+```{r}
+pred_model_10 =predict(model_10$best.model, newdata=test_data)
+svm_pred_10 =rep("0",804)
+svm_pred_10[pred_model_10 >0]="1"
+table(true=test_data$mortstat, pred=svm_pred_10)
+```
+```{r}
+171 / (179+9)
+(174) / (174+450)
+```
+
+## ROC for Radial SVM  
+```{r}
+library(ROCR)
+rocplot=function(pred, truth, ...){
+  predob = prediction (pred, truth)
+  perf = performance (predob , "tpr", "fpr")
+  plot(perf ,...)}
+```
+```{r}
+svmfit.opt_final=svm(mortstat~., data=train_data, kernel="radial", cost=1,decision.values=T)
+fitted=attributes(predict(svmfit.opt_final,train_data,decision.values=TRUE))$decision.values
+```
+```{r}
+par(mfrow=c(1,2))
+rocplot(fitted,train_data$mortstat,main="Training Data")
+svmfit.flex=svm(mortstat~., data=train_data, kernel="radial", cost=1,decision.values=T)
+fitted=attributes(predict(svmfit.flex,train_data, decision.values=T))$decision.values
+rocplot(fitted ,train_data$mortstat,add=T,col="red")
+fitted=attributes(predict(svmfit.opt_final,test_data,decision.values=T))$decision.values
+rocplot(fitted,test_data$mortstat,main="Test Data")
+abline(coef = c(0,1), col="red")
+```
+  
+As expected, the training data shows good performance on ROC measures. However, it's important to look at the ROC of the test data. This model is performing over the baseline (indicated in red at the 0.5 mark) and can be helpful to consider moving forward.  
+
+# Choosing a Model  
+## Sensitivity and Specificity  
+In assessing model selection, there are multiple criteria that we can use to assess. One of these model selection tools is sensitivity and specificity. Sensitivity refers to the ability of our model to detect those whose mortality status is truly going to be 1, or that truly dies over the 9-year study period. Having high sensitivity means that there are a few false negative results and that we will miss less cases of death (mort status = 1). Specificity is the ability of the model to detect those who are not going to die (mort status = 0) as truly predicting their mortality status in the 9-year study period to be 0. With maximizing specificity, we'll have less false positive results.  
+
+In this case of this data and predicting mortality status, we are more interested in ensuring sensitivity. We want to make sure that we catch those who have a higher risk of predicted mortality so an intervention can be possible within the needed time frame. This is not to say specificity does not matter, but rather, in a mortality analysis model, we want to focus on helping those who could be at risk of a particular disease.  
+
+Let's take a look at the sensitivity and specificity of all the models that we created in the table below.  
+
+
+
+
